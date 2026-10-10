@@ -47,11 +47,11 @@ class SdkConversation implements Conversation {
         // Claude Code retries dropped connections (for example after the computer sleeps) on its own,
         // but a retry restarts the generation, so tell the person why the step is taking longer.
         const e = (msg as any).error;
-        opts.onProgress(`Connection problem, Claude Code is retrying (attempt ${(msg as any).retryAttempt ?? '?'}): ${e?.formatted ?? e?.message ?? 'unknown error'}`);
+        opts.onProgress({ type: 'note', text: `Connection problem, Claude Code is retrying (attempt ${(msg as any).retryAttempt ?? '?'}): ${e?.formatted ?? e?.message ?? 'unknown error'}` });
       } else if (msg.type === 'assistant' && opts.onProgress) {
         const content = (msg as any).message?.content as Array<{ type: string; name?: string }> | undefined;
-        const tool = content?.find((c) => c.type === 'tool_use');
-        if (tool) opts.onProgress(`Using ${tool.name}`);
+        // StructuredOutput is how Claude Code returns the JSON answer itself, not a tool the step used.
+        for (const c of content ?? []) if (c.type === 'tool_use' && c.name && c.name !== 'StructuredOutput') opts.onProgress({ type: 'tool', name: c.name });
       }
     }
     if (!result) throw new Error('Claude returned no result message');

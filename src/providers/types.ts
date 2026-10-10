@@ -1,12 +1,16 @@
 import type { Effort, Usage } from '../types.js';
 
+export type ProgressEvent =
+  | { type: 'tool'; name: string }   // one tool call (web search, fetch, ...)
+  | { type: 'note'; text: string };  // something worth a log line on its own (retries, errors)
+
 export interface CallOptions {
   effort: Effort;
   model: string;
   allowWeb: boolean;
   schema: Record<string, unknown>;
   signal: AbortSignal;
-  onProgress?: (text: string) => void;
+  onProgress?: (event: ProgressEvent) => void;
 }
 
 export interface CallResult<T> {

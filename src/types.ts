@@ -59,6 +59,8 @@ export interface ExecutedStep {
   decisions: string[];
   sectionsUpdated: string[];
   planChanges: string[]; // human-readable log of plan edits this step made or proposed
+  toolCalls: Record<string, number>; // tool name -> calls made during the step (web research)
+  outcome: 'done' | 'stopped';
   error?: string;
 }
 

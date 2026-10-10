@@ -4,6 +4,7 @@
   const $ = (id) => document.getElementById(id);
   let state = null;
   let config = null;
+  let shownRunId = null;
   let lastJson = '';
   const showChanges = {}; // sectionId -> bool (user toggles)
   let activeTab = 'planned';
@@ -67,6 +68,7 @@
     render();
   };
   es.onerror = () => { $('provider-line').textContent = 'disconnected from server, retrying…'; };
+  es.onopen = () => { if (config) $('provider-line').textContent = config.providerDescription; };
 
   $('start').onclick = () => {
     const prompt = $('prompt-text').value;
@@ -125,9 +127,13 @@
     $('stop').hidden = !busy;
     $('model').disabled = busy;
     $('allow-web').disabled = busy;
-    if (s.status !== 'idle' && $('prompt-text').value !== s.prompt && !$('prompt-text').matches(':focus')) {
-      $('prompt-text').value = s.prompt; // show the prompt this run actually used (e.g. after a page reload)
+    if (s.id && s.id !== shownRunId) {
+      // A run this page has not shown yet (a fresh start, or a reload mid-run): reflect its settings once.
+      shownRunId = s.id;
+      $('prompt-text').value = s.prompt;
       updatePromptCount();
+      if ([...$('model').options].some((o) => o.value === s.model)) $('model').value = s.model;
+      $('allow-web').checked = Boolean(s.allowWeb);
     }
     applyPromptBox();
     $('doc-title').textContent = s.title || '';
@@ -197,7 +203,7 @@
   function renderPlanned(s) {
     const pane = $('tab-planned');
     const scroll = pane.parentElement.scrollTop;
-    const pending = s.steps.filter((st) => st.status !== 'done' && st.status !== 'failed');
+    const pending = s.steps.filter((st) => st.status !== 'done' && st.status !== 'stopped');
     $('count-planned').textContent = pending.length;
     if (s.steps.length === 0) {
       pane.innerHTML = `<div class="hint">${s.status === 'planning' ? 'Claude is choosing steps and effort levels…' : 'No plan yet.'}</div>`;
@@ -250,15 +256,17 @@
         ${metrics(s.planUsage)}</div>`);
     }
     if (!s.executed.length && !s.planUsage) items.push('<div class="hint">Finished steps appear here with the effort used, the tokens spent, and the assumptions and decisions Claude made.</div>');
-    for (const ex of [...s.executed].reverse()) {
+    for (const ex of s.executed) {
       const idx = s.steps.findIndex((st) => st.id === ex.stepId) + 1;
-      items.push(`<div class="card ${ex.error ? 'failed' : ''}">
-        <div class="card-head"><span class="card-num">${idx || ''}</span><span class="card-title">${esc(ex.title)}</span>
-          <span class="chip effort">${ex.effortUsed}</span>
+      const outcome = ex.outcome || (ex.error ? 'stopped' : 'done');
+      items.push(`<div class="card ${outcome !== 'done' ? 'stopped' : ''}">
+        <div class="card-head"><span class="card-num">${idx || ''}</span>
+          <span class="card-title">${esc(ex.title)}</span>
+          ${outcome === 'stopped' ? '<span class="chip stopped">stopped</span>' : ''}
           ${ex.effortSource === 'user' ? `<span class="chip user">you set${ex.claudeEffort !== ex.effortUsed ? ` · Claude chose ${ex.claudeEffort}` : ''}</span>` : `<span class="chip">Claude's choice</span>`}
-          ${ex.error ? '<span class="chip err">failed</span>' : '<span class="chip ok">done</span>'}</div>
+          <span class="chip effort">${ex.effortUsed}</span></div>
         ${ex.error ? `<div class="summary">${esc(ex.error)}</div>` : ''}
-        ${metrics(ex.usage)}
+        ${metrics(ex.usage, ex.toolCalls)}
         ${ex.summary ? `<div class="summary">${esc(ex.summary)}</div>` : ''}
         ${list('Sections updated', ex.sectionsUpdated.map((id) => (s.sections[id] ? s.sections[id].title : id)))}
         ${list('Assumptions', ex.assumptions)}
@@ -277,7 +285,7 @@
     if (atBottom && activeTab === 'log') pane.parentElement.scrollTop = pane.parentElement.scrollHeight;
   }
 
-  function metrics(u) {
+  function metrics(u, toolCalls) {
     const cells = [
       ['output tokens', fmtN(u.outputTokens)],
       ['thinking', u.thinkingTokens === null ? 'n/a' : fmtN(u.thinkingTokens)],
@@ -285,6 +293,8 @@
       ['time', fmtDur(u.durationMs)],
     ];
     if (u.costUsd !== null && u.costUsd !== undefined) cells.push(['est. cost', '$' + u.costUsd.toFixed(3)]);
+    const web = toolCalls ? Object.values(toolCalls).reduce((a, b) => a + b, 0) : 0;
+    if (web) cells.push(['web calls', fmtN(web)]);
     return `<div class="metrics">${cells.map(([k, v]) => `<div class="metric"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('')}</div>`;
   }
 

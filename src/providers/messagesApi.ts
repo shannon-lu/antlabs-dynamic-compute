@@ -48,6 +48,7 @@ class ApiConversation implements Conversation {
       { signal: opts.signal },
     );
     const response: any = await stream.finalMessage();
+    for (const b of response.content as any[]) if (b.type === 'server_tool_use' && opts.onProgress) opts.onProgress({ type: 'tool', name: b.name });
 
     if (response.stop_reason === 'refusal') {
       throw new Error(`Claude declined this step (${response.stop_details?.category ?? 'refusal'})`);

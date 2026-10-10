@@ -4,10 +4,12 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { Provider, Conversation } from './providers/types.js';
 import { PLAN_SCHEMA, STEP_SCHEMA, SYSTEM_PROMPT, TASK_PROMPT, planPrompt, stepPrompt, rejectedChangesNote } from './prompts.js';
+import type { ProgressEvent } from './providers/types.js';
 import {
   isEffort,
   type Effort,
   type ExecutedStep,
+  type LogEntry,
   type PlanOutput,
   type PlannedStep,
   type RunState,
@@ -37,6 +39,8 @@ export class Orchestrator extends EventEmitter {
   private pauseResolve: (() => void) | null = null;
   private emitTimer: NodeJS.Timeout | null = null;
   private pendingNote = '';
+  private toolCalls: Record<string, number> = {};
+  private toolLogEntry: LogEntry | null = null;
 
   constructor(
     private provider: Provider,
@@ -160,6 +164,8 @@ export class Orchestrator extends EventEmitter {
     this.state.currentStepId = step.id;
     this.state.currentStepStartedAt = now();
     this.log(`Running ${step.id} (${step.title}) at ${effort} effort${source === 'user' ? ', set by you' : ''}.`);
+    this.toolCalls = {};
+    this.toolLogEntry = null;
     this.changed();
 
     const remaining = this.state.steps.filter((s) => s.status === 'planned' || s.id === step.id);
@@ -172,16 +178,24 @@ export class Orchestrator extends EventEmitter {
     try {
       result = await conv.send<StepOutput>(prompt, this.callOpts(effort));
     } catch (err) {
-      if (this.abort.signal.aborted) return;
       step.status = 'failed';
+      if (this.abort.signal.aborted) {
+        this.state.executed.push({
+          stepId: step.id, title: step.title, effortUsed: effort, effortSource: source, claudeEffort: step.effort,
+          startedAt, finishedAt: now(), usage: zeroUsage(), summary: '', assumptions: [], decisions: [],
+          sectionsUpdated: [], planChanges: [], toolCalls: { ...this.toolCalls }, outcome: 'stopped', error: 'Stopped by the user before this step finished.',
+        });
+        this.changed();
+        return;
+      }
       this.state.executed.push({
         stepId: step.id, title: step.title, effortUsed: effort, effortSource: source, claudeEffort: step.effort,
         startedAt, finishedAt: now(), usage: zeroUsage(), summary: '', assumptions: [], decisions: [],
-        sectionsUpdated: [], planChanges: [], error: String((err as Error).message ?? err),
+        sectionsUpdated: [], planChanges: [], toolCalls: { ...this.toolCalls }, outcome: 'failed', error: String((err as Error).message ?? err),
       });
       throw err;
     }
-    if (this.abort.signal.aborted) return;
+    // If Stop arrived while the result was in flight, the step still finished: record it. The loop stops after it.
 
     const out = normalizeStepOutput(result.output);
     const executed: ExecutedStep = {
@@ -198,6 +212,8 @@ export class Orchestrator extends EventEmitter {
       decisions: out.decisions_to_confirm,
       sectionsUpdated: [],
       planChanges: [],
+      toolCalls: { ...this.toolCalls },
+      outcome: 'done',
     };
 
     // Document updates
@@ -316,7 +332,7 @@ export class Orchestrator extends EventEmitter {
       allowWeb: this.state.allowWeb,
       schema: (this.state.steps.length === 0 ? PLAN_SCHEMA : STEP_SCHEMA) as unknown as Record<string, unknown>,
       signal: this.abort.signal,
-      onProgress: (text: string) => this.log(text),
+      onProgress: (e: ProgressEvent) => this.progress(e),
     };
   }
 
@@ -366,6 +382,22 @@ export class Orchestrator extends EventEmitter {
     t.thinkingTokens += u.thinkingTokens ?? 0;
     t.inputTokens += u.inputTokens + u.cacheReadTokens + u.cacheWriteTokens;
     t.costUsd += u.costUsd ?? 0;
+  }
+
+  /** Tool calls within a step collapse into one log line that updates in place; notes get their own line. */
+  private progress(e: ProgressEvent): void {
+    if (e.type === 'note') { this.log(e.text); return; }
+    this.toolCalls[e.name] = (this.toolCalls[e.name] ?? 0) + 1;
+    const text = `${this.state.currentStepId ?? 'step'} is researching: ${describeToolCalls(this.toolCalls)}`;
+    if (this.toolLogEntry && this.state.log.includes(this.toolLogEntry)) {
+      this.toolLogEntry.text = text;
+      this.toolLogEntry.at = now();
+      this.changed();
+    } else {
+      this.toolLogEntry = { at: now(), text };
+      this.state.log.push(this.toolLogEntry);
+      this.changed();
+    }
   }
 
   private log(text: string): void {
@@ -427,6 +459,16 @@ function normalizeStepOutput(o: Partial<StepOutput> | undefined): StepOutput {
     new_steps: arr(o?.new_steps).filter((s) => s && s.title),
     effort_changes: arr(o?.effort_changes).filter((c) => c && c.step_id),
   };
+}
+
+export function describeToolCalls(calls: Record<string, number>): string {
+  const names: Record<string, [string, string]> = {
+    WebSearch: ['web search', 'web searches'], web_search: ['web search', 'web searches'],
+    WebFetch: ['page fetched', 'pages fetched'], web_fetch: ['page fetched', 'pages fetched'],
+  };
+  return Object.entries(calls)
+    .map(([name, n]) => { const [one, many] = names[name] ?? [`${name} call`, `${name} calls`]; return `${n} ${n === 1 ? one : many}`; })
+    .join(', ');
 }
 
 function arr<T>(x: T[] | undefined | null): T[] {

@@ -23,7 +23,7 @@ const orchestrator = new Orchestrator(provider, runsDir, pauseMs, defaultModel);
 
 const app = express();
 app.use(express.json());
-app.use(express.static(join(root, 'public')));
+app.use(express.static(join(root, 'public'), { etag: false, lastModified: false, setHeaders: (res) => res.setHeader('Cache-Control', 'no-store') }));
 
 // On macOS, keep the machine from idle-sleeping while a run is active. A sleep drops the
 // model stream and the step restarts from scratch when the connection comes back.
