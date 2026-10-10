@@ -8,17 +8,17 @@ The near-term step is effort. Within 12 months, a model on a long-running task w
 
 ## Trends and Demand Signals
 
-- **[Per-message effort](https://platform.claude.com/docs/en/build-with-claude/effort) (beta)****:**** **On select models, effort can be changed mid-conversation and does not invalidate the cache.
-- **[Task budgets](https://platform.claude.com/docs/en/build-with-claude/task-budgets) (beta)****:** The model paces itself against a token countdown and scopes down when the budget is too small.
-- **[Managed Agents advisor](https://platform.claude.com/docs/en/managed-agents/multiagent-orchestration):** Self-initiated escalation already exists in multi-agent sessions. The agent decides when a step requires a stronger model.
-- [**Claude Code issue #60200**](https://github.com/anthropics/claude-code/issues/60200)**:** Users ask for effort that adapts per turn.
-- **T****y****p****e****S****a****f****e****'****s**** ****Jev:** A specialized model that returns typed decisions, such as which model should handle a step, instead of text. Within a week of its September launch, four model gateways and three agent frameworks had integrated it, a sign of demand for specialized models and for compute matched to the size of the judgment.
+- [Per-message effort](https://platform.claude.com/docs/en/build-with-claude/effort) (beta): On select models, effort can be changed mid-conversation and does not invalidate the cache.
+- [Task budgets](https://platform.claude.com/docs/en/build-with-claude/task-budgets) (beta): The model paces itself against a token countdown and scopes down when the budget is too small.
+- [Managed Agents advisor](https://platform.claude.com/docs/en/managed-agents/multiagent-orchestration): Self-initiated escalation already exists in multi-agent sessions. The agent decides when a step requires a stronger model.
+- [Claude Code issue #60200](https://github.com/anthropics/claude-code/issues/60200): Users ask for effort that adapts per turn.
+- TypeSafe Jev: A specialized model that returns typed decisions, such as which model should handle a step, instead of text. Within a week of its September launch, four model gateways and three agent frameworks had integrated it, a sign of demand for specialized models and for compute matched to the size of the judgment.
 
 ## Recent Research
 
-- **[Adaptive Reasoning Effort Selection (ARES)](https://arxiv.org/pdf/2603.07915) (March 2026):** Setting effort per step cuts cost without losing accuracy, and can raise it. A 1.7B trained router cut an agent’s reasoning tokens 35–45% on three agent benchmarks, with accuracy within 2 points of fixed high effort. With further training it beat high effort by about 4 points on tool-use tasks at under half the tokens, because high effort sometimes hurts.
-- [**DroidSpeak**](https://www.usenix.org/system/files/nsdi26-liu-yuhan.pdf)** (May 2026):** Specialized models fine-tuned from the same base model can reuse each other’s cache. The receiving model recomputes only a few layers and reuses the rest, making prefill 1.7–3.1x faster and throughput up to 4x higher with negligible quality loss. The waste this removes is large: in a realistic four-agent workflow, 49% of tokens were context that had already been processed.
-- **[Cross-model cache transfer](https://arxiv.org/pdf/2608.03893) (August 2026)****:** A cache built by one model can be converted for a different-sized model in the same family without reprocessing. An NVIDIA linear mapping did this 2.7 to 25 times faster than reprocessing. Four of six pairs kept 73–98% of accuracy averaged over five benchmarks; the other two fell to 42–44%.
+- [Adaptive Reasoning Effort Selection (ARES)](https://arxiv.org/pdf/2603.07915) (March 2026): Setting effort per step cuts cost without losing accuracy, and can raise it. A 1.7B trained router cut an agent’s reasoning tokens 35–45% on three agent benchmarks, with accuracy within 2 points of fixed high effort. With further training it beat high effort by about 4 points on tool-use tasks at under half the tokens, because high effort sometimes hurts.
+- [DroidSpeak](https://www.usenix.org/system/files/nsdi26-liu-yuhan.pdf) (May 2026): Specialized models fine-tuned from the same base model can reuse each other’s cache. The receiving model recomputes only a few layers and reuses the rest, making prefill 1.7–3.1x faster and throughput up to 4x higher with negligible quality loss. The waste this removes is large: in a realistic four-agent workflow, 49% of tokens were context that had already been processed.
+- [Cross-model cache transfer](https://arxiv.org/pdf/2608.03893) (August 2026): A cache built by one model can be converted for a different-sized model in the same family without reprocessing. An NVIDIA linear mapping did this 2.7 to 25 times faster than reprocessing. Four of six pairs kept 73–98% of accuracy averaged over five benchmarks; the other two fell to 42–44%.
 
 ## Characteristics
 
@@ -30,11 +30,11 @@ The near-term step is effort. Within 12 months, a model on a long-running task w
 
 ## Limitations
 
-- **Self-assessment is unproven.** The measured savings come from a separately trained router. When frontier models were simply prompted to choose the effort, accuracy fell by up to 15 points, which suggests the skill must be trained.
-- **Errors compound.** A step given too little effort can derail every step after it, so a wrong call can cost more than it saved. In one research benchmark, low effort on every step cut accuracy from 43% to 8%.
-- **The evidence is on open models.** The ARES study used a 20B agent. On a 120B agent the router was never trained on, savings fell to 23%. Nothing here is shown on frontier models.
-- **Today's hand-offs are narrow.** DroidSpeak works only between models fine-tuned from the same base model. The NVIDIA method was tested only within a model family, needs a separate 4–12 GB mapping for each pair and direction, and kept math reasoning above 90% on only one of six pairs.
-- **A shared cache has to be designed in.** Models must be trained to read the same cache, so model families would be built for it from the start. No frontier lab has published one.
+- Self-assessment is unproven. The measured savings come from a separately trained router. When frontier models were simply prompted to choose the effort, accuracy fell by up to 15 points, which suggests the skill must be trained.
+- Errors compound. A step given too little effort can derail every step after it, so a wrong call can cost more than it saved. In one research benchmark, low effort on every step cut accuracy from 43% to 8%.
+- The evidence is on open models. The ARES study used a 20B agent. On a 120B agent the router was never trained on, savings fell to 23%. Nothing here is shown on frontier models.
+- Today's hand-offs are narrow. DroidSpeak works only between models fine-tuned from the same base model. The NVIDIA method was tested only within a model family, needs a separate 4–12 GB mapping for each pair and direction, and kept math reasoning above 90% on only one of six pairs.
+- A shared cache has to be designed in. Models must be trained to read the same cache, so model families would be built for it from the start. No frontier lab has published one.
 
 ## Readiness
 

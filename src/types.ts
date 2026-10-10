@@ -89,6 +89,7 @@ export interface LogEntry {
 
 export interface RunState {
   id: string;
+  title: string; // document title, chosen by Claude in the plan
   status: RunStatus;
   provider: string;
   model: string;
@@ -111,6 +112,7 @@ export interface RunState {
 
 // Shapes Claude returns via structured output.
 export interface PlanOutput {
+  title: string;
   sections: { id: string; title: string }[];
   steps: {
     id: string;

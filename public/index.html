@@ -45,11 +45,18 @@
 <main class="layout">
   <section class="doc" id="doc-pane">
     <div class="doc-head">
-      <h1>30-day Southwest road trip</h1>
-      <details class="prompt">
-        <summary>Task prompt</summary>
-        <pre id="prompt-text"></pre>
-      </details>
+      <div class="prompt-box" id="prompt-box">
+        <div class="prompt-head">
+          <label for="prompt-text">Task prompt</label>
+          <div class="prompt-tools">
+            <span id="prompt-count" class="prompt-count"></span>
+            <button id="prompt-reset" class="btn small" type="button">Reset to example</button>
+            <button id="prompt-toggle" class="btn small" type="button" hidden>Show</button>
+          </div>
+        </div>
+        <textarea id="prompt-text" rows="4" spellcheck="false" placeholder="Describe a long task. Claude will plan it as steps and write the result as a document."></textarea>
+      </div>
+      <h1 id="doc-title" hidden></h1>
     </div>
     <div id="doc-body" class="doc-body"></div>
   </section>

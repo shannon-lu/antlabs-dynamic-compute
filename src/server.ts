@@ -4,7 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { mkdirSync } from 'node:fs';
 import { spawn, type ChildProcess } from 'node:child_process';
-import { Orchestrator } from './orchestrator.js';
+import { MAX_PROMPT_CHARS, Orchestrator } from './orchestrator.js';
+import { TASK_PROMPT } from './prompts.js';
 import { selectProvider } from './providers/index.js';
 import { MODELS } from './types.js';
 
@@ -66,6 +67,8 @@ app.get('/api/config', (_req, res) => {
     models: MODELS,
     defaultModel,
     pauseMs,
+    defaultPrompt: TASK_PROMPT,
+    maxPromptChars: MAX_PROMPT_CHARS,
   });
 });
 
@@ -84,7 +87,8 @@ function action(fn: (req: Request) => void | Promise<void>) {
 
 app.post('/api/run/start', action(async (req) => {
   const model = typeof req.body?.model === 'string' && MODELS.some((m) => m.id === req.body.model) ? req.body.model : defaultModel;
-  await orchestrator.start({ model, allowWeb: Boolean(req.body?.allowWeb) });
+  const prompt = typeof req.body?.prompt === 'string' ? req.body.prompt : '';
+  await orchestrator.start({ model, allowWeb: Boolean(req.body?.allowWeb), prompt });
 }));
 app.post('/api/run/stop', action(() => orchestrator.stop()));
 app.post('/api/run/effort', action((req) => orchestrator.setEffort(String(req.body?.stepId), String(req.body?.effort))));

@@ -14,7 +14,50 @@
     const sel = $('model');
     sel.innerHTML = c.models.map((m) => `<option value="${m.id}" ${m.id === c.defaultModel ? 'selected' : ''}>${esc(m.label)}</option>`).join('');
     $('provider-line').textContent = c.providerDescription;
+    // Pre-fill the example prompt unless the person already typed something.
+    if (!$('prompt-text').value.trim()) $('prompt-text').value = c.defaultPrompt;
+    updatePromptCount();
+    autosizePrompt();
   });
+
+  function updatePromptCount() {
+    if (!config) return;
+    const n = $('prompt-text').value.length;
+    const el = $('prompt-count');
+    el.textContent = `${n.toLocaleString()} / ${config.maxPromptChars.toLocaleString()}`;
+    el.classList.toggle('over', n > config.maxPromptChars);
+  }
+  $('prompt-text').addEventListener('input', updatePromptCount);
+  $('prompt-reset').onclick = () => { if (config) { $('prompt-text').value = config.defaultPrompt; updatePromptCount(); autosizePrompt(); } };
+  let promptCollapsed = null; // null = automatic: collapsed once a run has started, open before
+  $('prompt-toggle').onclick = () => { promptCollapsed = !isPromptCollapsed(); applyPromptBox(); };
+  function isPromptCollapsed() {
+    const hasRun = state && state.status !== 'idle';
+    return promptCollapsed === null ? Boolean(hasRun) : promptCollapsed;
+  }
+  function autosizePrompt() {
+    const ta = $('prompt-text');
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(420, Math.max(96, ta.scrollHeight + 2)) + 'px';
+  }
+  $('prompt-text').addEventListener('input', autosizePrompt);
+
+  function applyPromptBox() {
+    const s = state;
+    const busy = s && ['planning', 'paused', 'running'].includes(s.status);
+    const hasRun = s && s.status !== 'idle';
+    const box = $('prompt-box');
+    const ta = $('prompt-text');
+    // Editable only between runs. During and after a run the box shows the prompt that run used.
+    ta.readOnly = Boolean(busy);
+    box.classList.toggle('locked', Boolean(busy));
+    $('prompt-reset').hidden = Boolean(busy);
+    $('prompt-toggle').hidden = !hasRun;
+    const collapsed = isPromptCollapsed();
+    $('prompt-toggle').textContent = collapsed ? 'Show prompt' : 'Hide prompt';
+    box.classList.toggle('collapsed', Boolean(hasRun && collapsed));
+    if (!collapsed) autosizePrompt();
+  }
 
   const es = new EventSource('/api/events');
   es.onmessage = (e) => {
@@ -25,7 +68,12 @@
   };
   es.onerror = () => { $('provider-line').textContent = 'disconnected from server, retrying…'; };
 
-  $('start').onclick = () => post('/api/run/start', { model: $('model').value, allowWeb: $('allow-web').checked });
+  $('start').onclick = () => {
+    const prompt = $('prompt-text').value;
+    if (!prompt.trim()) { toast('Write a task prompt first'); $('prompt-text').focus(); return; }
+    promptCollapsed = null; // back to automatic: the document takes over once the run starts
+    post('/api/run/start', { model: $('model').value, allowWeb: $('allow-web').checked, prompt });
+  };
   $('stop').onclick = () => post('/api/run/stop', {});
   $('extend').onclick = () => post('/api/run/pause/extend', { ms: 30000 });
   $('continue').onclick = () => post('/api/run/pause/continue', {});
@@ -77,7 +125,13 @@
     $('stop').hidden = !busy;
     $('model').disabled = busy;
     $('allow-web').disabled = busy;
-    $('prompt-text').textContent = s.prompt;
+    if (s.status !== 'idle' && $('prompt-text').value !== s.prompt && !$('prompt-text').matches(':focus')) {
+      $('prompt-text').value = s.prompt; // show the prompt this run actually used (e.g. after a page reload)
+      updatePromptCount();
+    }
+    applyPromptBox();
+    $('doc-title').textContent = s.title || '';
+    $('doc-title').hidden = !s.title;
 
     const t = s.totals;
     $('totals').textContent = t.calls
@@ -150,7 +204,10 @@
       return;
     }
     const canEdit = ['paused', 'running', 'planning'].includes(s.status);
-    pane.innerHTML = (pending.length ? '' : '<div class="hint">All steps finished.</div>') + pending.map((st) => {
+    const shortPlan = s.steps.length < 3
+      ? `<div class="hint warn">Claude planned only ${s.steps.length} step${s.steps.length === 1 ? '' : 's'} for this task. The effort dial shows best on longer tasks with several distinct steps.</div>`
+      : '';
+    pane.innerHTML = shortPlan + (pending.length ? '' : '<div class="hint">All steps finished.</div>') + pending.map((st) => {
       const idx = s.steps.indexOf(st) + 1;
       const inProg = st.status === 'in_progress';
       const eff = st.userEffort || st.effort;

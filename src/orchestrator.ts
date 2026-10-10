@@ -18,7 +18,10 @@ import {
 export interface StartOptions {
   model: string;
   allowWeb: boolean;
+  prompt: string;
 }
+
+export const MAX_PROMPT_CHARS = 20000;
 
 const PLAN_EFFORT: Effort = 'high';
 
@@ -54,7 +57,11 @@ export class Orchestrator extends EventEmitter {
   async start(opts: StartOptions): Promise<void> {
     if (this.busy) throw new Error('A run is already in progress');
     this.abort = new AbortController();
+    const prompt = (opts.prompt ?? '').trim();
+    if (!prompt) throw new Error('The task prompt is empty');
+    if (prompt.length > MAX_PROMPT_CHARS) throw new Error(`The task prompt is longer than ${MAX_PROMPT_CHARS} characters`);
     this.state = emptyState(this.provider.name, opts.model);
+    this.state.prompt = prompt;
     this.state.id = `${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID().slice(0, 6)}`;
     this.state.allowWeb = opts.allowWeb;
     this.state.startedAt = now();
@@ -111,7 +118,7 @@ export class Orchestrator extends EventEmitter {
     this.state.status = 'planning';
     this.log(`Planning at ${PLAN_EFFORT} effort with ${this.state.model}.`);
     this.changed();
-    const plan = await conv.send<PlanOutput>(planPrompt(TASK_PROMPT), this.callOpts(PLAN_EFFORT));
+    const plan = await conv.send<PlanOutput>(planPrompt(this.state.prompt), this.callOpts(PLAN_EFFORT));
     if (signal.aborted) return;
     this.adoptPlan(plan.output);
     this.state.planUsage = plan.usage;
@@ -266,6 +273,7 @@ export class Orchestrator extends EventEmitter {
   // ---- helpers ------------------------------------------------------------
 
   private adoptPlan(plan: PlanOutput): void {
+    this.state.title = (plan.title ?? '').trim() || 'Document';
     const sections = (plan.sections ?? []).filter((s) => s && s.id);
     for (const s of sections) {
       const id = slug(s.id);
@@ -388,6 +396,7 @@ export class Orchestrator extends EventEmitter {
 function emptyState(provider: string, model: string): RunState {
   return {
     id: '',
+    title: '',
     status: 'idle',
     provider,
     model,

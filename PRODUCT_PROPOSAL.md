@@ -57,9 +57,9 @@ Each story maps to one piece of v1 behavior and can be tested as written.
 
 - As a user, I can audit each finished step with what it did, the effort used, the tokens used and any assumption or decision made.
 
-## Demo scenario
+## Example scenario
 
-The demo plans a 30-day road trip for two people. Its constraints are chosen so the steps need visibly different effort: some carry safety or scheduling risk, and some are easy. The prompt below can be pasted as written into Claude Opus, Sonnet or Fable.
+The example asks Claude to plan a 30-day road trip for two people. Its constraints are chosen so the steps need visibly different effort: some carry safety or scheduling risk, and some are easy. The prompt below can be pasted as written.
 
 ```text
 Plan a 30-day road trip for my partner and me, and write it up as a day-by-day itinerary.
@@ -84,6 +84,8 @@ Make the decisions for us, but do not book or pay for anything. List every assum
 
 The table shows the spread of effort we expect across the plan. It is an illustration, not output from a real run.
 
+In this example, the user could mark the restaurant step to max because the allergy is severe. Later, Claude could find a stretch with no charger in range, then add a rerouting step at high effort, and mark the change with its reason.
+
 | Step | Expected effort | Why |
 | --- | --- | --- |
 | Fix the route and overnight stops around the wedding date | xhigh | Every later step depends on it |
@@ -93,8 +95,6 @@ The table shows the spread of effort we expect across the plan. It is an illustr
 | Check the plan against the budget | medium | Arithmetic on earlier results |
 | Pick hikes, hot springs and photo stops | low | Easy to change later |
 | Write the packing list | low | Low stakes |
-
-The demo has the opportunity to show two moments. The user raises the restaurant step to max because the allergy is severe. Later, Claude finds a stretch with no charger in range, adds a rerouting step at high effort, and marks the change with its reason.
 
 ## How the prototype works
 

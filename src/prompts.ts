@@ -35,6 +35,7 @@ How a run works
 export const PLAN_SCHEMA = {
   type: 'object',
   properties: {
+    title: { type: 'string', description: 'A short title for the document, under 8 words.' },
     sections: {
       type: 'array',
       description: 'The document outline in reading order. Short, stable ids like "route" or "charging".',
@@ -47,7 +48,7 @@ export const PLAN_SCHEMA = {
     },
     steps: {
       type: 'array',
-      description: 'Steps in execution order. Between 5 and 10 steps.',
+      description: 'Steps in execution order. As many as the task needs, at most 12.',
       items: {
         type: 'object',
         properties: {
@@ -64,7 +65,7 @@ export const PLAN_SCHEMA = {
       },
     },
   },
-  required: ['sections', 'steps'],
+  required: ['title', 'sections', 'steps'],
   additionalProperties: false,
 } as const;
 
@@ -133,7 +134,7 @@ export function planPrompt(task: string): string {
 ${task}
 </task>
 
-Plan the run. Return the document outline (sections) and the ordered steps with an effort level and a one-line reason for each. Keep steps coarse enough that each one produces a meaningful part of the document. Do not execute any step yet.`;
+Plan the run. Return a title for the document, its outline (sections), and the ordered steps with an effort level and a one-line reason for each. Use as many steps as the task needs and no more: a long task may need ten, a small one two or three. Keep steps coarse enough that each one produces a meaningful part of the document. Do not execute any step yet.`;
 }
 
 export function stepPrompt(step: PlannedStep, remaining: PlannedStep[], sectionTitles: Record<string, string>): string {

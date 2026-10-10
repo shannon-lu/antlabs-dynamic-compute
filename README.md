@@ -33,7 +33,7 @@ Optional check before the first run, two tiny calls on your login:
 npm run doctor
 ```
 
-Then press **Start run**. Claude plans the road trip task, pauses 10 seconds so you can review and change effort levels, and then works through the steps. The document on the left fills in as steps finish. The side panel shows the planned steps (with editable effort) and the executed steps (with the effort used, tokens spent, assumptions and decisions).
+Then press **Start run**. The task prompt box is pre-filled with the road trip scenario from the proposal and you can edit it or replace it with any long task. Claude plans the task, pauses 10 seconds so you can review and change effort levels, and then works through the steps. The document on the left fills in as steps finish. The side panel shows the planned steps (with editable effort) and the executed steps (with the effort used, tokens spent, assumptions and decisions).
 
 ### Options
 
@@ -53,7 +53,7 @@ Each run is saved as JSON under `runs/` for audit.
 
 ## What it does
 
-1. **Plan.** One call at `high` effort returns the document outline and 5 to 10 steps, each with an effort level (`low`, `medium`, `high`, `xhigh`, `max`), a one-line reason, and an "uncertain" flag.
+1. **Plan.** One call at `high` effort returns a document title, the outline, and as many steps as the task needs (at most 12), each with an effort level (`low`, `medium`, `high`, `xhigh`, `max`), a one-line reason, and an "uncertain" flag.
 2. **Pause.** The run pauses 10 seconds. You can extend the pause, end it early, or change effort levels. You can also change levels at any time while the run is going, on any step that has not started.
 3. **Steps.** Each step is one message to Claude in the same conversation, sent at the step's current effort: yours if you set one, otherwise Claude's. Claude returns the full new content of the sections it changed, its assumptions, decisions to confirm, and any plan changes.
 4. **Plan changes.** After a step Claude can add steps or change the effort of later steps, with a reason. Each change is marked on the step card. A level you set is never overwritten: Claude's proposal is recorded and shown as "kept your choice", and Claude is told on its next message.
@@ -75,7 +75,7 @@ These were open questions in the proposal or came up during the build. Each has 
 9. **Tokens come from the per-call `usage` field.** If a connection drops mid-step and Claude Code retries, the step's count includes the abandoned attempts; the Log tab shows when that happened. Output tokens include thinking; thinking tokens are shown separately where the backend reports them (the SDK does, the direct API does not). Cost is the SDK's client-side estimate, shown as a delta per call because the SDK reports a running total.
 10. **Document changes are marked at paragraph level.** A line-level LCS diff of the Markdown, with changed blocks rendered and marked. Word-level marking inside rendered Markdown was not worth the complexity for v1.
 11. **New steps are inserted where Claude asks, but never before a step that already ran or is running.**
-12. **The task prompt is fixed** to the road trip scenario from the proposal. An editable prompt was dropped from scope.
+12. **The task prompt is editable.** The road trip scenario is pre-filled as the example, with a reset button. Nothing else in the app knows about road trips: Claude names the document and chooses its sections and steps from the prompt. Prompts are capped at 20,000 characters. When Claude plans fewer than three steps, the Planned tab shows a hint that the effort dial reads best on longer tasks, since short tasks are outside the product's target.
 13. **Claude Code settings are ignored for the run.** The SDK is started with no setting sources so a user's `effortLevel` default or CLAUDE.md files cannot leak into the demo, and `CLAUDE_CODE_EFFORT_LEVEL` is removed from the environment because it would override per-step effort.
 14. **Default model is Opus 5.5**, as the proposal recommends. Sonnet 5.5 and Fable 5.1 are selectable.
 15. **The app keeps a Mac awake during a run.** The first full test run stalled for an hour because the laptop idle-slept while a step was generating; Claude Code reconnects after a wake, but the step restarts from scratch each time. The server now runs `caffeinate -i -s` while a run is active (macOS only), which blocks idle and system sleep while on AC power. It does not stop sleep when the lid is closed, so keep the lid open during a run.
