@@ -1,12 +1,11 @@
 # Claude Collaborate
 
-A working prototype of the product in [PRODUCT_PROPOSAL.md](PRODUCT_PROPOSAL.md): steer a long Claude task while it runs, with an **effort dial on every step**. Claude plans the task as steps and picks an effort level for each. You can change any level before the step starts, and the app sends that level to Claude for real. The capability bet behind it is in [CAPABILITY_PREDICTION.md](CAPABILITY_PREDICTION.md).
+A working prototype that simulates the product defined in [PRODUCT_PROPOSAL.md](PRODUCT_PROPOSAL.md): Claude dynamically sets different effort levels on
+steps within a long-running task and users can override these effort levels. 
+
+The capability bet behind it is self-directed, finer control over compute. More details in [CAPABILITY_PREDICTION.md](CAPABILITY_PREDICTION.md).
 
 Every run makes live model calls. There is no mock mode and no canned output.
-
-![Planned steps tab during a run](docs/planned-steps.png)
-
-![Executed steps tab with per-step effort and tokens](docs/executed-steps.png)
 
 ## Requirements
 
@@ -93,28 +92,6 @@ Copy `.env.example` to `.env`. All settings are optional.
 
 Every run is saved as JSON under `runs/` for audit.
 
-## What a run looks like
-
-First full run: Opus 5.5, web research off, two overrides made during the plan pause. Output tokens include thinking.
-
-| Step | Effort | Chosen by | Output tokens | Thinking | Time |
-| --- | --- | --- | --- | --- | --- |
-| Plan | high | app | 2,174 | 745 | 21s |
-| 1. Route loop, overnight stops, calendar | xhigh | Claude | 117,141\* | 105,566\* | 81m\* |
-| 2. Charging for every driving day | xhigh | Claude | 42,829 | 34,133 | 6m 51s |
-| 3. Lodging with Wi-Fi and charging | high | Claude | 13,572 | 6,887 | 2m 12s |
-| 4. Two safe restaurants per stop | **max** | **user** (Claude chose xhigh) | 65,748 | 55,082 | 10m 32s |
-| 5. Day-by-day itinerary | high | Claude | 15,290 | 5,761 | 2m 14s |
-| 6. Budget against the $9,000 cap | high | Claude, raised from medium after step 3 | 6,510 | 2,944 | 1m 2s |
-| 7. Photo stops and packing list | low | Claude | 1,607 | 0 | 16s |
-| 8. Constraint check, assumptions, decisions | **low** | **user** (Claude chose high) | 3,750 | 156 | 32s |
-
-\* Inflated: the laptop slept during this step and each reconnect restarted the generation. See Troubleshooting.
-
-Three things to point at: the effort gradient is real (low steps used under 4,000 output tokens and almost no thinking, xhigh steps used tens of thousands); overrides are honored (steps 4 and 8 ran at the user's level and say so); and Claude edited its own plan, raising the budget step after pricing lodging, with the reason "Lodging alone is about $5,760, leaving roughly $3,240 for 30 days of food plus activities. The budget step will likely have to make real trade-offs, not just add things up."
-
-A full run of the road trip prompt takes 25 to 40 minutes with the machine awake. The xhigh and max steps are most of that. Shorter prompts finish in a few minutes.
-
 ## How it works
 
 - **One conversation per run, one message per step.** The plan is the first message. Each step resumes the same conversation at its own effort level, so later steps see earlier results without re-sending the document.
@@ -127,7 +104,7 @@ A full run of the road trip prompt takes 25 to 40 minutes with the machine awake
 
 ## Limitations
 
-- Claude chooses each level but the app applies it between messages. Effort switching inside one agent turn is the capability being predicted, not demonstrated.
+- Effort switching inside one agent turn is the capability being predicted and simulated. Claude chooses each level but the app applies it between messages.
 - Steps are coarser than those inside a real agent turn.
 - Without web research, facts such as charger locations come from the model's knowledge and may be out of date.
 - A plan with fewer than three steps shows a hint: short tasks are outside the product's target, and the effort dial reads best on longer ones.
