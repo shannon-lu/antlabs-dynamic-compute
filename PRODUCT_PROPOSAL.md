@@ -83,9 +83,7 @@ Also include a short packing list and a few scenic photo stops.
 Make the decisions for us, but do not book or pay for anything. List every assumption you make and every decision you want us to confirm.
 ```
 
-The table shows the spread of effort we expected across the plan when the proposal was written. The first real run on Opus 5.5 came close: route at xhigh, charging at xhigh, lodging and restaurants at high or above, budget at medium, packing at low. The README has the full numbers.
-
-In that run the user raised the restaurant step to max during the plan pause, and the step ran at max. After pricing lodging, Claude raised the budget step from medium to high and gave its reason. The charger reroute moment did not occur in that run; it remains a possible outcome, not a scripted one.
+The table shows an example of effort we expected across the plan. As the task runs, the user can raise the restaurant step to max during the plan pause, then see the step is executed at max effort. After pricing lodging, Claude can raise the budget step from medium to high and provide its reason.
 
 | Step | Expected effort | Why |
 | --- | --- | --- |
