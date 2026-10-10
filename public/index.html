@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Collaborate</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo" aria-hidden="true"></span>
+    <div>
+      <div class="brand-name">Claude Collaborate</div>
+      <div class="brand-sub" id="provider-line">connecting…</div>
+    </div>
+  </div>
+  <div class="controls">
+    <label class="ctl">Model
+      <select id="model"></select>
+    </label>
+    <label class="ctl check"><input type="checkbox" id="allow-web"> Allow web research</label>
+    <button id="start" class="btn primary">Start run</button>
+    <button id="stop" class="btn danger" hidden>Stop</button>
+  </div>
+  <div class="status">
+    <span id="status-pill" class="pill idle">idle</span>
+    <span id="totals" class="totals"></span>
+  </div>
+</header>
+
+<div id="pause-banner" class="pause-banner" hidden>
+  <div class="pause-text">
+    <strong id="pause-title"></strong>
+    <span id="pause-sub"></span>
+  </div>
+  <div class="pause-actions">
+    <span class="countdown"><span id="pause-count">10</span>s</span>
+    <button id="extend" class="btn">Extend 30s</button>
+    <button id="continue" class="btn primary">Continue now</button>
+  </div>
+</div>
+
+<main class="layout">
+  <section class="doc" id="doc-pane">
+    <div class="doc-head">
+      <h1>30-day Southwest road trip</h1>
+      <details class="prompt">
+        <summary>Task prompt</summary>
+        <pre id="prompt-text"></pre>
+      </details>
+    </div>
+    <div id="doc-body" class="doc-body"></div>
+  </section>
+
+  <aside class="panel">
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-tab="planned" role="tab">Planned steps <span class="count" id="count-planned">0</span></button>
+      <button class="tab" data-tab="executed" role="tab">Executed steps <span class="count" id="count-executed">0</span></button>
+      <button class="tab" data-tab="log" role="tab">Log</button>
+    </div>
+    <div class="tabpanes">
+      <div class="tabpane active" id="tab-planned"></div>
+      <div class="tabpane" id="tab-executed"></div>
+      <div class="tabpane" id="tab-log"></div>
+    </div>
+  </aside>
+</main>
+
+<div id="toast" class="toast" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>
